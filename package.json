@@ -1,0 +1,48 @@
+{
+  "name": "allsports",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "dependencies": {
+    "@expo/metro-runtime": "~57.0.16",
+    "@expo/vector-icons": "^15.0.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@supabase/supabase-js": "^2.117.1",
+    "expo": "~57.0.24",
+    "expo-constants": "~57.0.19",
+    "expo-linking": "~57.0.10",
+    "expo-router": "~57.0.22",
+    "expo-status-bar": "~57.0.1",
+    "expo-updates": "~57.0.23",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-url-polyfill": "^4.0.0",
+    "react-native-web": "^0.21.2"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~57.0.2",
+    "gh-pages": "^6.3.0",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "seed": "tsx --env-file=.env scripts/seed.ts",
+    "match-teams": "tsx --env-file=.env scripts/matchTeams.ts",
+    "match-tennis-players": "tsx --env-file=.env scripts/matchTennisPlayers.ts",
+    "match-golf-players": "tsx --env-file=.env scripts/matchGolfPlayers.ts",
+    "match-ufa-teams": "tsx --env-file=.env scripts/matchUfaTeams.ts",
+    "ingest": "tsx --env-file=.env scripts/ingest.ts",
+    "lint": "expo lint",
+    "predeploy": "expo export -p web",
+    "deploy": "gh-pages --nojekyll -d dist"
+  },
+  "private": true
+}

@@ -1,0 +1,11 @@
+-- UFA now has a real (if undocumented) data source: backend.ufastats.com,
+-- the API behind the official watchufa.com stats pages. Same "no backfill,
+-- tracked from today forward" policy as every other sport added after
+-- NFL/CFB/EPL -- and moot in practice right now, since the 2026 UFA season
+-- already ended (Aug 28); real scoring starts when the 2027 season begins.
+-- Regular-season win scoring only for now (5 per win, already the
+-- points_per_win value) -- playoff placement bonuses aren't built yet; UFA's
+-- week-based schedule (week-1, week-2, ... week-16) doesn't label which
+-- weeks are playoffs the way ESPN's headline/round fields do for other
+-- sports, so that needs more research before it can be built confidently.
+update sports set tracking_start_date = '2026-09-23' where key = 'UFA';

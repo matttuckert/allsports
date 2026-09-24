@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "allsports",
+    "slug": "allsports",
+    "version": "1.0.0",
+    "scheme": "allsports",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.matttuckert.allsports",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.matttuckert.allsports",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "baseUrl": "/allsports"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a06b885c-9cd9-40ca-a495-521d47e05086"
+      }
+    },
+    "owner": "matttuckert",
+    "runtimeVersion": "exposdk:57.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/a06b885c-9cd9-40ca-a495-521d47e05086"
+    }
+  }
+}
