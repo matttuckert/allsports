@@ -56,37 +56,33 @@ export default function RosterScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: gmName ?? 'Roster',
-          // react-native-web's RefreshControl is a no-op, so pull-to-refresh
-          // never fires in the browser -- this button is the only way to
-          // trigger onRefresh there.
-          headerRight:
-            Platform.OS === 'web'
-              ? () => (
-                  <Pressable
-                    onPress={onRefresh}
-                    disabled={loading}
-                    accessibilityLabel="Refresh roster"
-                    accessibilityRole="button"
-                  >
-                    {loading ? (
-                      <ActivityIndicator size="small" color="#18181B" />
-                    ) : (
-                      <Ionicons name="refresh" size={22} color="#18181B" />
-                    )}
-                  </Pressable>
-                )
-              : undefined,
-        }}
-      />
+      <Stack.Screen options={{ title: gmName ?? 'Roster' }} />
       <FlatList
         contentContainerStyle={styles.list}
         data={rows}
         keyExtractor={(item) => item.roster_entry_id}
         refreshing={loading}
         onRefresh={onRefresh}
+        ListHeaderComponent={
+          Platform.OS === 'web' ? (
+            // react-native-web's RefreshControl is a no-op, so pull-to-refresh
+            // never fires in the browser -- this button is the only way to
+            // trigger onRefresh there.
+            <Pressable
+              style={styles.refreshButton}
+              onPress={onRefresh}
+              disabled={loading}
+              accessibilityLabel="Refresh roster"
+              accessibilityRole="button"
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#18181B" />
+              ) : (
+                <Ionicons name="refresh" size={20} color="#18181B" />
+              )}
+            </Pressable>
+          ) : null
+        }
         ListEmptyComponent={
           !loading ? <Text style={styles.empty}>{error ?? 'No roster found.'}</Text> : null
         }
@@ -104,6 +100,13 @@ export default function RosterScreen() {
 
 const styles = StyleSheet.create({
   list: { padding: 16, gap: 8 },
+  refreshButton: {
+    alignSelf: 'flex-end',
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#F4F4F5',
+    marginBottom: 4,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

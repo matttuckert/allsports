@@ -2,13 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Modal,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { refreshRecentScores } from '@/lib/refresh';
@@ -99,51 +99,23 @@ function DropdownFilter({
   selected: string;
   onSelect: (value: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const allOptions = allLabel ? [{ label: allLabel, value: ALL }, ...options] : options;
-  const selectedLabel = allOptions.find((o) => o.value === selected)?.label ?? selected;
 
   return (
     <View style={styles.filterRow}>
       <Text style={styles.filterLabel}>{label}</Text>
-      <Pressable style={styles.dropdownWrapper} onPress={() => setOpen(true)}>
-        <Text style={styles.dropdownValue} numberOfLines={1}>
-          {selectedLabel}
-        </Text>
-        <Ionicons name="chevron-down" size={18} color="#18181B" />
-      </Pressable>
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setOpen(false)}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{label}</Text>
-            <FlatList
-              data={allOptions}
-              keyExtractor={(item) => item.value}
-              renderItem={({ item }) => (
-                <Pressable
-                  style={styles.modalOption}
-                  onPress={() => {
-                    onSelect(item.value);
-                    setOpen(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.modalOptionText,
-                      item.value === selected && styles.modalOptionTextSelected,
-                    ]}
-                  >
-                    {item.label}
-                  </Text>
-                  {item.value === selected && (
-                    <Ionicons name="checkmark" size={18} color="#18181B" />
-                  )}
-                </Pressable>
-              )}
-            />
-          </View>
-        </Pressable>
-      </Modal>
+      <View style={styles.dropdownWrapper}>
+        <Picker
+          selectedValue={selected}
+          onValueChange={(value) => onSelect(value)}
+          style={styles.picker}
+          accessibilityLabel={label}
+        >
+          {allOptions.map((option) => (
+            <Picker.Item key={option.value} label={option.label} value={option.value} />
+          ))}
+        </Picker>
+      </View>
     </View>
   );
 }
@@ -375,46 +347,20 @@ const styles = StyleSheet.create({
   filterRow: { gap: 6 },
   filterLabel: { fontSize: 12, fontWeight: '700', color: '#71717A', textTransform: 'uppercase' },
   dropdownWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: '#E4E4E7',
     borderRadius: 8,
     backgroundColor: '#fff',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  dropdownValue: { fontSize: 16, color: '#18181B', flexShrink: 1 },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    overflow: 'hidden',
     justifyContent: 'center',
-    padding: 24,
   },
-  modalCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    maxHeight: '70%',
+  picker: {
+    color: '#18181B',
+    ...Platform.select({
+      ios: { height: 120 },
+      default: { height: 44 },
+    }),
   },
-  modalTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#71717A',
-    textTransform: 'uppercase',
-    marginBottom: 8,
-  },
-  modalOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F4F4F5',
-  },
-  modalOptionText: { fontSize: 16, color: '#18181B' },
-  modalOptionTextSelected: { fontWeight: '700' },
   card: { padding: 14, borderRadius: 12, backgroundColor: '#F4F4F5', gap: 4 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sport: { fontSize: 12, fontWeight: '700', color: '#71717A', textTransform: 'uppercase' },
