@@ -28,6 +28,18 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
+// The web build calls this function directly from the browser, which sends a
+// CORS preflight (OPTIONS) before the real POST -- without these headers the
+// preflight fails, the browser never sends the POST at all, and (since only
+// this function's atomic claim below ever advances ingest_state) the client's
+// throttle check is permanently stuck comparing against a run that never
+// happened, so it never skips the ESPN/UFA fetches either.
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 type SportKey = 'NFL' | 'CFB' | 'EPL' | 'NBA' | 'WNBA' | 'MLB' | 'NHL' | 'TENNIS';
 
 // Every ESPN team-sport league splits games into preseason/regular/postseason
@@ -737,8 +749,12 @@ async function checkEplChampion(
 }
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   if (req.method !== 'POST') {
-    return new Response('POST only', { status: 405 });
+    return new Response('POST only', { status: 405, headers: corsHeaders });
   }
 
   const supabase = createClient(
@@ -762,11 +778,14 @@ Deno.serve(async (req) => {
     .select()
     .maybeSingle();
   if (claimError) {
-    return new Response(JSON.stringify({ error: claimError.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: claimError.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
   if (!claimed) {
     return new Response(JSON.stringify({ skipped: 'refreshed-recently' }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
@@ -1052,6 +1071,6 @@ Deno.serve(async (req) => {
   }
 
   return new Response(JSON.stringify(summary, null, 2), {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 });
