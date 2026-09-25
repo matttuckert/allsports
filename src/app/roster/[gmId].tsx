@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { RosterEntryPointsRow } from '@/types/db';
@@ -47,7 +56,31 @@ export default function RosterScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: gmName ?? 'Roster' }} />
+      <Stack.Screen
+        options={{
+          title: gmName ?? 'Roster',
+          // react-native-web's RefreshControl is a no-op, so pull-to-refresh
+          // never fires in the browser -- this button is the only way to
+          // trigger onRefresh there.
+          headerRight:
+            Platform.OS === 'web'
+              ? () => (
+                  <Pressable
+                    onPress={onRefresh}
+                    disabled={loading}
+                    accessibilityLabel="Refresh roster"
+                    accessibilityRole="button"
+                  >
+                    {loading ? (
+                      <ActivityIndicator size="small" color="#18181B" />
+                    ) : (
+                      <Ionicons name="refresh" size={22} color="#18181B" />
+                    )}
+                  </Pressable>
+                )
+              : undefined,
+        }}
+      />
       <FlatList
         contentContainerStyle={styles.list}
         data={rows}

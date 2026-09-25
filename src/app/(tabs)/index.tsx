@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { refreshRecentScores } from '@/lib/refresh';
@@ -63,6 +72,26 @@ export default function StandingsScreen() {
       keyExtractor={(item) => item.gm_id}
       refreshing={loading}
       onRefresh={onRefresh}
+      ListHeaderComponent={
+        Platform.OS === 'web' ? (
+          // react-native-web's RefreshControl is a no-op, so pull-to-refresh
+          // never fires in the browser -- this button is the only way to
+          // trigger onRefresh there.
+          <Pressable
+            style={styles.refreshButton}
+            onPress={onRefresh}
+            disabled={loading}
+            accessibilityLabel="Refresh standings"
+            accessibilityRole="button"
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#18181B" />
+            ) : (
+              <Ionicons name="refresh" size={20} color="#18181B" />
+            )}
+          </Pressable>
+        ) : null
+      }
       ListEmptyComponent={
         !loading ? <Text style={styles.empty}>{error ?? 'No standings yet.'}</Text> : null
       }
@@ -87,6 +116,13 @@ export default function StandingsScreen() {
 
 const styles = StyleSheet.create({
   list: { padding: 16, gap: 8 },
+  refreshButton: {
+    alignSelf: 'flex-end',
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#F4F4F5',
+    marginBottom: 4,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { RosterEntryPointsRow } from '@/types/db';
 import { SportKey } from '@/types/scoring';
@@ -85,6 +95,26 @@ export default function LeaguesScreen() {
         keyExtractor={(item) => item.roster_entry_id}
         refreshing={loading}
         onRefresh={onRefresh}
+        ListHeaderComponent={
+          Platform.OS === 'web' ? (
+            // react-native-web's RefreshControl is a no-op, so pull-to-refresh
+            // never fires in the browser -- this button is the only way to
+            // trigger onRefresh there.
+            <Pressable
+              style={styles.refreshButton}
+              onPress={onRefresh}
+              disabled={loading}
+              accessibilityLabel="Refresh league results"
+              accessibilityRole="button"
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#18181B" />
+              ) : (
+                <Ionicons name="refresh" size={20} color="#18181B" />
+              )}
+            </Pressable>
+          ) : null
+        }
         ListEmptyComponent={
           !loading ? <Text style={styles.empty}>{error ?? 'No results yet.'}</Text> : null
         }
@@ -124,6 +154,13 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 14, fontWeight: '600', color: '#3F3F46' },
   tabTextActive: { color: '#fff' },
   list: { padding: 16, gap: 8 },
+  refreshButton: {
+    alignSelf: 'flex-end',
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#F4F4F5',
+    marginBottom: 4,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

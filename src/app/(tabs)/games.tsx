@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { refreshRecentScores } from '@/lib/refresh';
@@ -279,6 +288,24 @@ export default function GamesScreen() {
       onRefresh={onRefresh}
       ListHeaderComponent={
         <View style={styles.filters}>
+          {Platform.OS === 'web' && (
+            // react-native-web's RefreshControl is a no-op, so pull-to-refresh
+            // never fires in the browser -- this button is the only way to
+            // trigger onRefresh there.
+            <Pressable
+              style={styles.refreshButton}
+              onPress={onRefresh}
+              disabled={loading}
+              accessibilityLabel="Refresh games"
+              accessibilityRole="button"
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#18181B" />
+              ) : (
+                <Ionicons name="refresh" size={20} color="#18181B" />
+              )}
+            </Pressable>
+          )}
           <DropdownFilter
             label="League"
             allLabel="All Leagues"
@@ -339,6 +366,12 @@ export default function GamesScreen() {
 const styles = StyleSheet.create({
   list: { padding: 16, gap: 10 },
   filters: { gap: 10, marginBottom: 4 },
+  refreshButton: {
+    alignSelf: 'flex-end',
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#F4F4F5',
+  },
   filterRow: { gap: 6 },
   filterLabel: { fontSize: 12, fontWeight: '700', color: '#71717A', textTransform: 'uppercase' },
   dropdownWrapper: {
