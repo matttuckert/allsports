@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { RosterEntryPointsRow } from '@/types/db';
 import { SportKey } from '@/types/scoring';
 import { SetupNotice } from '@/components/SetupNotice';
+import { useHeaderRefresh } from '@/components/RefreshButton';
+import { colors, getSportTheme, rankBadge } from '@/theme';
 
 const LEAGUES: SportKey[] = [
   'NFL',
@@ -66,6 +66,8 @@ export default function LeaguesScreen() {
     });
   }, [league]);
 
+  useHeaderRefresh(onRefresh, loading, 'Refresh league results');
+
   if (!isSupabaseConfigured) return <SetupNotice />;
 
   return (
@@ -78,13 +80,16 @@ export default function LeaguesScreen() {
       >
         {LEAGUES.map((key) => {
           const active = key === league;
+          const theme = getSportTheme(key);
           return (
             <Pressable
               key={key}
               onPress={() => setLeague(key)}
               style={[styles.tab, active && styles.tabActive]}
             >
-              <Text style={[styles.tabText, active && styles.tabTextActive]}>{key}</Text>
+              <Text style={[styles.tabText, active && styles.tabTextActive]}>
+                {theme.emoji} {key}
+              </Text>
             </Pressable>
           );
         })}
@@ -95,39 +100,37 @@ export default function LeaguesScreen() {
         keyExtractor={(item) => item.roster_entry_id}
         refreshing={loading}
         onRefresh={onRefresh}
-        ListHeaderComponent={
-          Platform.OS === 'web' ? (
-            // react-native-web's RefreshControl is a no-op, so pull-to-refresh
-            // never fires in the browser -- this button is the only way to
-            // trigger onRefresh there.
-            <Pressable
-              style={styles.refreshButton}
-              onPress={onRefresh}
-              disabled={loading}
-              accessibilityLabel="Refresh league results"
-              accessibilityRole="button"
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#18181B" />
-              ) : (
-                <Ionicons name="refresh" size={20} color="#18181B" />
-              )}
-            </Pressable>
-          ) : null
-        }
         ListEmptyComponent={
           !loading ? <Text style={styles.empty}>{error ?? 'No results yet.'}</Text> : null
         }
-        renderItem={({ item, index }) => (
-          <View style={styles.row}>
-            <Text style={styles.rank}>{index + 1}</Text>
+        renderItem={({ item, index }) => {
+          const badge = rankBadge(index);
+          return (
+          <Pressable
+            style={[styles.row, { borderLeftColor: getSportTheme(league).color }]}
+            onPress={() =>
+              router.push({
+                pathname: '/team/[entryId]',
+                params: {
+                  entryId: item.roster_entry_id,
+                  name: item.name,
+                  sportKey: item.sport_key,
+                  gmName: item.gm_name,
+                },
+              })
+            }
+          >
+            <Text style={[styles.rank, badge.isMedal && styles.medal]}>{badge.label}</Text>
             <View style={styles.nameColumn}>
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.gmName}>{item.gm_name}</Text>
             </View>
-            <Text style={styles.points}>{item.total_points}</Text>
-          </View>
-        )}
+            <View style={styles.pointsPill}>
+              <Text style={styles.points}>{item.total_points}</Text>
+            </View>
+          </Pressable>
+          );
+        }}
       />
     </View>
   );
@@ -135,7 +138,7 @@ export default function LeaguesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  tabBar: { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: '#E4E4E7' },
+  tabBar: { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: colors.border },
   tabBarContent: {
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -146,33 +149,41 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#F4F4F5',
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabActive: { backgroundColor: '#18181B' },
-  tabText: { fontSize: 14, fontWeight: '600', color: '#3F3F46' },
+  tabActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  tabText: { fontSize: 14, fontWeight: '700', color: colors.text },
   tabTextActive: { color: '#fff' },
   list: { padding: 16, gap: 8 },
-  refreshButton: {
-    alignSelf: 'flex-end',
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#F4F4F5',
-    marginBottom: 4,
-  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 14,
-    borderRadius: 12,
-    backgroundColor: '#F4F4F5',
+    borderRadius: 14,
+    borderLeftWidth: 4,
+    backgroundColor: colors.card,
     gap: 12,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
-  rank: { width: 24, fontWeight: '700', color: '#71717A' },
+  rank: { width: 32, fontWeight: '800', color: colors.textMuted, textAlign: 'center' },
+  medal: { fontSize: 22 },
   nameColumn: { flex: 1 },
-  name: { fontSize: 16, fontWeight: '600' },
-  gmName: { fontSize: 13, color: '#71717A', marginTop: 2 },
-  points: { fontSize: 16, fontWeight: '700' },
-  empty: { textAlign: 'center', marginTop: 40, color: '#71717A' },
+  name: { fontSize: 16, fontWeight: '700', color: colors.text },
+  gmName: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
+  pointsPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: colors.chip,
+  },
+  points: { fontSize: 16, fontWeight: '800', color: colors.text },
+  empty: { textAlign: 'center', marginTop: 40, color: colors.textMuted },
 });

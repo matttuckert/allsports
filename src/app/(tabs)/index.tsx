@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { refreshRecentScores } from '@/lib/refresh';
 import { StandingRow } from '@/types/db';
 import { SetupNotice } from '@/components/SetupNotice';
+import { useHeaderRefresh } from '@/components/RefreshButton';
+import { colors, rankBadge } from '@/theme';
 
 function fetchStandings() {
   return supabase.from('standings').select('*');
@@ -63,6 +63,8 @@ export default function StandingsScreen() {
     }
   }, []);
 
+  useHeaderRefresh(onRefresh, loading, 'Refresh standings');
+
   if (!isSupabaseConfigured) return <SetupNotice />;
 
   return (
@@ -72,32 +74,14 @@ export default function StandingsScreen() {
       keyExtractor={(item) => item.gm_id}
       refreshing={loading}
       onRefresh={onRefresh}
-      ListHeaderComponent={
-        Platform.OS === 'web' ? (
-          // react-native-web's RefreshControl is a no-op, so pull-to-refresh
-          // never fires in the browser -- this button is the only way to
-          // trigger onRefresh there.
-          <Pressable
-            style={styles.refreshButton}
-            onPress={onRefresh}
-            disabled={loading}
-            accessibilityLabel="Refresh standings"
-            accessibilityRole="button"
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="#18181B" />
-            ) : (
-              <Ionicons name="refresh" size={20} color="#18181B" />
-            )}
-          </Pressable>
-        ) : null
-      }
       ListEmptyComponent={
         !loading ? <Text style={styles.empty}>{error ?? 'No standings yet.'}</Text> : null
       }
-      renderItem={({ item, index }) => (
+      renderItem={({ item, index }) => {
+        const badge = rankBadge(index);
+        return (
         <Pressable
-          style={styles.row}
+          style={[styles.row, { borderLeftColor: badge.accent }]}
           onPress={() =>
             router.push({
               pathname: '/roster/[gmId]',
@@ -105,34 +89,43 @@ export default function StandingsScreen() {
             })
           }
         >
-          <Text style={styles.rank}>{index + 1}</Text>
+          <Text style={[styles.rank, badge.isMedal && styles.medal]}>{badge.label}</Text>
           <Text style={styles.name}>{item.gm_name}</Text>
-          <Text style={styles.points}>{item.total_points}</Text>
+          <View style={styles.pointsPill}>
+            <Text style={styles.points}>{item.total_points}</Text>
+          </View>
         </Pressable>
-      )}
+        );
+      }}
     />
   );
 }
 
 const styles = StyleSheet.create({
   list: { padding: 16, gap: 8 },
-  refreshButton: {
-    alignSelf: 'flex-end',
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#F4F4F5',
-    marginBottom: 4,
-  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 14,
-    borderRadius: 12,
-    backgroundColor: '#F4F4F5',
+    borderRadius: 14,
+    borderLeftWidth: 4,
+    backgroundColor: colors.card,
     gap: 12,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
-  rank: { width: 24, fontWeight: '700', color: '#71717A' },
-  name: { flex: 1, fontSize: 16, fontWeight: '600' },
-  points: { fontSize: 16, fontWeight: '700' },
-  empty: { textAlign: 'center', marginTop: 40, color: '#71717A' },
+  rank: { width: 32, fontWeight: '800', color: colors.textMuted, textAlign: 'center' },
+  medal: { fontSize: 22 },
+  name: { flex: 1, fontSize: 17, fontWeight: '700', color: colors.text },
+  pointsPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: colors.chip,
+  },
+  points: { fontSize: 16, fontWeight: '800', color: colors.text },
+  empty: { textAlign: 'center', marginTop: 40, color: colors.textMuted },
 });

@@ -129,9 +129,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
     gap: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#F5F5F5',
   },
-  title: { fontSize: 22, fontWeight: '700' },
+  title: { fontSize: 22, fontWeight: '800', color: '#111827' },
   subtitle: { fontSize: 14, color: '#71717A', marginBottom: 8 },
   input: {
     width: '100%',
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   error: { color: '#DC2626', fontSize: 14 },
   button: {
     width: '100%',
-    backgroundColor: '#18181B',
+    backgroundColor: '#DC2626',
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',

@@ -1,54 +1,28 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
-  Platform,
-  Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { Ionicons } from '@expo/vector-icons';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { refreshRecentScores } from '@/lib/refresh';
 import { RosterGameRow } from '@/types/db';
 import { SetupNotice } from '@/components/SetupNotice';
-
-const ALL = 'ALL';
-
-type DatePreset = 'ALL' | 'TODAY' | 'YESTERDAY' | 'LAST_7' | 'LAST_30';
-
-const DATE_PRESETS: { key: DatePreset; label: string }[] = [
-  { key: 'ALL', label: 'All' },
-  { key: 'TODAY', label: 'Today' },
-  { key: 'YESTERDAY', label: 'Yesterday' },
-  { key: 'LAST_7', label: 'Last 7 days' },
-  { key: 'LAST_30', label: 'Last 30 days' },
-];
-
-// A "postseason result" is any credit carrying a placement bonus (reaching
-// the championship/semifinal/quarterfinal, across MLB/WNBA/CFB/NFL/NHL) or
-// the EPL table-champion entry -- not just games tagged is_standings_result,
-// which only ever applies to that one EPL case.
-type EventTypeFilter = 'BOTH' | 'REGULAR' | 'POSTSEASON';
-
-const EVENT_TYPE_OPTIONS: { key: EventTypeFilter; label: string }[] = [
-  { key: 'BOTH', label: 'All' },
-  { key: 'REGULAR', label: 'Regular Games' },
-  { key: 'POSTSEASON', label: 'Postseason Results' },
-];
-
-function isPlacementReason(reason: string): boolean {
-  return (
-    reason.includes('championship') ||
-    reason.includes('semifinal_exit') ||
-    reason.includes('quarterfinal_exit') ||
-    reason === 'table_champion'
-  );
-}
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+import { useHeaderRefresh } from '@/components/RefreshButton';
+import { colors, getSportTheme } from '@/theme';
+import { DropdownFilter } from '@/components/DropdownFilter';
+import {
+  ALL,
+  DATE_PRESETS,
+  DatePreset,
+  EVENT_TYPE_OPTIONS,
+  EventTypeFilter,
+  dateRangeFor,
+  formatGameDate,
+  isPlacementReason,
+  toDateOnly,
+} from '@/lib/gameFilters';
 
 interface GroupedGame {
   gameId: string;
@@ -65,59 +39,6 @@ interface GroupedGame {
 
 function fetchRosterGames() {
   return supabase.from('roster_games').select('*').order('starts_at', { ascending: false });
-}
-
-// Local time, not UTC -- a late-night US game (e.g. Sunday Night Football)
-// falls on the next UTC day, which would otherwise show/filter as the wrong
-// date for everyone watching in a US timezone.
-function toDateOnly(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
-
-function daysAgo(n: number): Date {
-  const d = toDateOnly(new Date());
-  d.setDate(d.getDate() - n);
-  return d;
-}
-
-function formatGameDate(iso: string | null): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-}
-
-function DropdownFilter({
-  label,
-  allLabel,
-  options,
-  selected,
-  onSelect,
-}: {
-  label: string;
-  allLabel?: string;
-  options: { label: string; value: string }[];
-  selected: string;
-  onSelect: (value: string) => void;
-}) {
-  const allOptions = allLabel ? [{ label: allLabel, value: ALL }, ...options] : options;
-
-  return (
-    <View style={styles.filterRow}>
-      <Text style={styles.filterLabel}>{label}</Text>
-      <View style={styles.dropdownWrapper}>
-        <Picker
-          selectedValue={selected}
-          onValueChange={(value) => onSelect(value)}
-          style={styles.picker}
-          accessibilityLabel={label}
-        >
-          {allOptions.map((option) => (
-            <Picker.Item key={option.value} label={option.label} value={option.value} />
-          ))}
-        </Picker>
-      </View>
-    </View>
-  );
 }
 
 export default function GamesScreen() {
@@ -213,21 +134,7 @@ export default function GamesScreen() {
     [allGames]
   );
 
-  const dateRange = useMemo((): [Date, Date] | null => {
-    switch (datePreset) {
-      case 'TODAY':
-        return [daysAgo(0), daysAgo(0)];
-      case 'YESTERDAY':
-        return [daysAgo(1), daysAgo(1)];
-      case 'LAST_7':
-        return [daysAgo(7), daysAgo(0)];
-      case 'LAST_30':
-        return [daysAgo(30), daysAgo(0)];
-      case 'ALL':
-      default:
-        return null;
-    }
-  }, [datePreset]);
+  const dateRange = useMemo(() => dateRangeFor(datePreset), [datePreset]);
 
   const games = useMemo(
     () =>
@@ -249,6 +156,8 @@ export default function GamesScreen() {
     [allGames, sportFilter, gmFilter, dateRange, eventTypeFilter]
   );
 
+  useHeaderRefresh(onRefresh, loading, 'Refresh games');
+
   if (!isSupabaseConfigured) return <SetupNotice />;
 
   return (
@@ -260,24 +169,6 @@ export default function GamesScreen() {
       onRefresh={onRefresh}
       ListHeaderComponent={
         <View style={styles.filters}>
-          {Platform.OS === 'web' && (
-            // react-native-web's RefreshControl is a no-op, so pull-to-refresh
-            // never fires in the browser -- this button is the only way to
-            // trigger onRefresh there.
-            <Pressable
-              style={styles.refreshButton}
-              onPress={onRefresh}
-              disabled={loading}
-              accessibilityLabel="Refresh games"
-              accessibilityRole="button"
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#18181B" />
-              ) : (
-                <Ionicons name="refresh" size={20} color="#18181B" />
-              )}
-            </Pressable>
-          )}
           <DropdownFilter
             label="League"
             allLabel="All Leagues"
@@ -311,10 +202,16 @@ export default function GamesScreen() {
           <Text style={styles.empty}>{error ?? 'No games match these filters.'}</Text>
         ) : null
       }
-      renderItem={({ item }) => (
-        <View style={styles.card}>
+      renderItem={({ item }) => {
+        const theme = getSportTheme(item.sportKey);
+        return (
+        <View style={[styles.card, { borderLeftColor: theme.color }]}>
           <View style={styles.cardHeader}>
-            <Text style={styles.sport}>{item.sportKey}</Text>
+            <View style={styles.sportChip}>
+              <Text style={styles.sport}>
+                {theme.emoji} {item.sportKey}
+              </Text>
+            </View>
             <Text style={styles.date}>{formatGameDate(item.startsAt)}</Text>
           </View>
           {item.isStandingsResult ? (
@@ -330,7 +227,8 @@ export default function GamesScreen() {
             </Text>
           ))}
         </View>
-      )}
+        );
+      }}
     />
   );
 }
@@ -338,34 +236,28 @@ export default function GamesScreen() {
 const styles = StyleSheet.create({
   list: { padding: 16, gap: 10 },
   filters: { gap: 10, marginBottom: 4 },
-  refreshButton: {
-    alignSelf: 'flex-end',
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#F4F4F5',
+  card: {
+    padding: 14,
+    borderRadius: 14,
+    borderLeftWidth: 4,
+    backgroundColor: colors.card,
+    gap: 4,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
-  filterRow: { gap: 6 },
-  filterLabel: { fontSize: 12, fontWeight: '700', color: '#71717A', textTransform: 'uppercase' },
-  dropdownWrapper: {
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    overflow: 'hidden',
-    justifyContent: 'center',
+  sportChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: colors.chip,
   },
-  picker: {
-    color: '#18181B',
-    ...Platform.select({
-      ios: { height: 120 },
-      default: { height: 44 },
-    }),
-  },
-  card: { padding: 14, borderRadius: 12, backgroundColor: '#F4F4F5', gap: 4 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sport: { fontSize: 12, fontWeight: '700', color: '#71717A', textTransform: 'uppercase' },
-  date: { fontSize: 12, color: '#A1A1AA' },
-  matchup: { fontSize: 16, fontWeight: '600' },
-  credit: { fontSize: 14, color: '#3F3F46' },
-  empty: { textAlign: 'center', marginTop: 40, color: '#71717A' },
+  sport: { fontSize: 12, fontWeight: '800', color: colors.text, textTransform: 'uppercase' },
+  date: { fontSize: 12, color: colors.textMuted },
+  matchup: { fontSize: 16, fontWeight: '700', color: colors.text, marginTop: 4 },
+  credit: { fontSize: 14, fontWeight: '500', color: '#374151' },
+  empty: { textAlign: 'center', marginTop: 40, color: colors.textMuted },
 });

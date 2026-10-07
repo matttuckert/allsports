@@ -1,18 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { RosterEntryPointsRow } from '@/types/db';
 import { SetupNotice } from '@/components/SetupNotice';
+import { useHeaderRefresh } from '@/components/RefreshButton';
+import { colors, getSportTheme } from '@/theme';
 
 function fetchRoster(gmId: string) {
   return supabase
@@ -52,6 +51,8 @@ export default function RosterScreen() {
     });
   }, [gmId]);
 
+  useHeaderRefresh(onRefresh, loading, 'Refresh roster');
+
   if (!isSupabaseConfigured) return <SetupNotice />;
 
   return (
@@ -63,36 +64,36 @@ export default function RosterScreen() {
         keyExtractor={(item) => item.roster_entry_id}
         refreshing={loading}
         onRefresh={onRefresh}
-        ListHeaderComponent={
-          Platform.OS === 'web' ? (
-            // react-native-web's RefreshControl is a no-op, so pull-to-refresh
-            // never fires in the browser -- this button is the only way to
-            // trigger onRefresh there.
-            <Pressable
-              style={styles.refreshButton}
-              onPress={onRefresh}
-              disabled={loading}
-              accessibilityLabel="Refresh roster"
-              accessibilityRole="button"
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#18181B" />
-              ) : (
-                <Ionicons name="refresh" size={20} color="#18181B" />
-              )}
-            </Pressable>
-          ) : null
-        }
         ListEmptyComponent={
           !loading ? <Text style={styles.empty}>{error ?? 'No roster found.'}</Text> : null
         }
-        renderItem={({ item }) => (
-          <View style={styles.row}>
-            <Text style={styles.sport}>{item.sport_key}</Text>
-            <Text style={styles.name}>{item.name}</Text>
-            <Text style={styles.points}>{item.total_points}</Text>
-          </View>
-        )}
+        renderItem={({ item }) => {
+          const theme = getSportTheme(item.sport_key);
+          return (
+            <Pressable
+              style={[styles.row, { borderLeftColor: theme.color }]}
+              onPress={() =>
+                router.push({
+                  pathname: '/team/[entryId]',
+                  params: {
+                    entryId: item.roster_entry_id,
+                    name: item.name,
+                    sportKey: item.sport_key,
+                    gmName: item.gm_name,
+                  },
+                })
+              }
+            >
+              <View style={styles.sportChip}>
+                <Text style={styles.sport}>
+                  {theme.emoji} {item.sport_key}
+                </Text>
+              </View>
+              <Text style={styles.name}>{item.name}</Text>
+              <Text style={styles.points}>{item.total_points}</Text>
+            </Pressable>
+          );
+        }}
       />
     </>
   );
@@ -100,23 +101,28 @@ export default function RosterScreen() {
 
 const styles = StyleSheet.create({
   list: { padding: 16, gap: 8 },
-  refreshButton: {
-    alignSelf: 'flex-end',
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#F4F4F5',
-    marginBottom: 4,
-  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 14,
-    borderRadius: 12,
-    backgroundColor: '#F4F4F5',
+    borderRadius: 14,
+    borderLeftWidth: 4,
+    backgroundColor: colors.card,
     gap: 12,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
-  sport: { width: 60, fontSize: 12, fontWeight: '700', color: '#71717A' },
-  name: { flex: 1, fontSize: 16, fontWeight: '600' },
-  points: { fontSize: 16, fontWeight: '700' },
-  empty: { textAlign: 'center', marginTop: 40, color: '#71717A' },
+  sportChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: colors.chip,
+  },
+  sport: { fontSize: 12, fontWeight: '800', color: colors.text },
+  name: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.text },
+  points: { fontSize: 18, fontWeight: '800', color: colors.text },
+  empty: { textAlign: 'center', marginTop: 40, color: colors.textMuted },
 });
