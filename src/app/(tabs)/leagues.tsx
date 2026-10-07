@@ -138,7 +138,7 @@ export default function LeaguesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  tabBar: { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: colors.border },
+  tabBar: { flexGrow: 0, flexShrink: 0, borderBottomWidth: 1, borderBottomColor: colors.border },
   tabBarContent: {
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -148,6 +148,8 @@ const styles = StyleSheet.create({
   tab: {
     paddingHorizontal: 14,
     paddingVertical: 8,
+    minHeight: 36,
+    flexShrink: 0,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: colors.border,
