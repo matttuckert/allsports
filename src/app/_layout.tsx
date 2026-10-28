@@ -1,6 +1,5 @@
 import { Stack } from 'expo-router';
 import { PasswordGate } from '@/components/PasswordGate';
-import { HalloweenOverlay } from '@/components/HalloweenOverlay';
 import { colors } from '@/theme';
 
 export default function RootLayout() {
@@ -18,7 +17,6 @@ export default function RootLayout() {
         <Stack.Screen name="roster/[gmId]" options={{ title: 'Roster' }} />
         <Stack.Screen name="team/[entryId]" options={{ title: 'Team' }} />
       </Stack>
-      <HalloweenOverlay />
     </PasswordGate>
   );
 }
